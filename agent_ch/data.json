@@ -1,0 +1,167 @@
+{
+    "Courses": [
+        "Python",
+        "Excel",
+        "Java"
+    ],
+    "Python": {
+        "Introduction": [
+            "What it is",
+            "Why should we use it",
+            "How to use it",
+            "Key Features",
+            "Applications",
+            "Pros",
+            "Cons",
+            "Best Resources to Learn",
+            "Career Opportunities",
+            "Common Mistakes & Best Practices"
+        ],
+        "Variables": [
+            "Assigning to Variables",
+            "Multiple Variables",
+            "Global Variables",
+            "Variable Exercise"
+        ],
+        "Lists": [
+            "What is a List?",
+            "Access List Items",
+            "Change List Items",
+            "Add List Items",
+            "Remove List Items",
+            "Loop Through Lists",
+            "List Comprehension",
+            "Sort Lists",
+            "Copy Lists",
+            "Join Lists",
+            "List Methods",
+            "List Exercises"
+        ],
+        "Tuples": [
+            "What is a Tuple?",
+            "Access Tuple Items",
+            "Update Tuples",
+            "Unpack Tuples",
+            "Loop Through Tuples",
+            "Join Tuples",
+            "Tuple Methods",
+            "Tuple Exercises"
+        ],
+        "Sets": [
+            "What is a Set?",
+            "Access Set Items",
+            "Add Set Items",
+            "Remove Set Items",
+            "Loop Through Sets",
+            "Join Sets",
+            "Set Methods",
+            "Set Exercises"
+        ],
+        "Dictionaries": [
+            "What is a Dictionary?",
+            "Access Dictionary Items",
+            "Change Dictionary Items",
+            "Add Dictionary Items",
+            "Remove Dictionary Items",
+            "Loop Through Dictionaries",
+            "Dictionary Methods",
+            "Dictionary Exercises"
+        ],
+        "If-Else": [
+            "What is If-Else?",
+            "If Statements",
+            "Else Statements",
+            "Elif Statements",
+            "Nested If Statements",
+            "Short-Hand If",
+            "If-Else Exercises"
+        ],
+        "Loops": [
+            "For Loops",
+            "While Loops",
+            "Nested Loops",
+            "Loop Control Statements",
+            "Loop Exercises"
+        ],
+        "Details": {}
+    },
+    "Excel": {
+        "Introduction": [
+            "What it is",
+            "Why should we use it",
+            "How to use it",
+            "Key Features",
+            "Applications",
+            "Pros",
+            "Cons",
+            "Best Resources to Learn",
+            "Career Opportunities",
+            "Common Mistakes & Best Practices"
+        ],
+        "Functions": [
+            "Basic Functions",
+            "Mathematical Functions",
+            "Logical Functions",
+            "Text Functions",
+            "Lookup Functions",
+            "Statistical Functions",
+            "Date & Time Functions",
+            "Financial Functions"
+        ],
+        "Data Analysis": [
+            "Sorting Data",
+            "Filtering Data",
+            "Pivot Tables",
+            "Charts and Graphs",
+            "Conditional Formatting",
+            "Data Validation",
+            "Excel Macros"
+        ],
+        "Details": {}
+    },
+    "Java": {
+        "Introduction": [
+            "What it is",
+            "Why should we use it",
+            "How to use it",
+            "Key Features",
+            "Applications",
+            "Pros",
+            "Cons",
+            "Best Resources to Learn",
+            "Career Opportunities",
+            "Common Mistakes & Best Practices"
+        ],
+        "Variables": [
+            "Declaring Variables",
+            "Data Types",
+            "Variable Scope",
+            "Final Variables",
+            "Variable Exercises"
+        ],
+        "Control Flow": [
+            "If-Else Statements",
+            "Switch Statements",
+            "Loops in Java",
+            "Break and Continue Statements"
+        ],
+        "Object-Oriented Programming": [
+            "Classes and Objects",
+            "Inheritance",
+            "Polymorphism",
+            "Encapsulation",
+            "Abstraction",
+            "Constructors",
+            "Interfaces"
+        ],
+        "Collections": [
+            "ArrayLists",
+            "LinkedLists",
+            "HashMaps",
+            "HashSets",
+            "Queues",
+            "Stacks"
+        ],
+        "Details": {}
+    }
+}

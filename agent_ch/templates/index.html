@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Tutor</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .height-600 {
+      height: 600px;
+    }
+
+    .score-display {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background-color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .hidden {
+      display: none;
+    }
+    #messages-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    #messages-container::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    .loading-dots span {
+      opacity: 0;
+      animation: dot-animation 1.5s infinite;
+    }
+    .loading-dots span:nth-child(1) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.4s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes dot-animation {
+      0% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-in;
+    }
+    .animate-fadeOut {
+      animation: fadeOut 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(10px); }
+    }
+    #session-reset-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-in;
+    }
+    code {
+      font-family: monospace;
+      font-size: 0.9em;
+      background-color: #f3f4f6;
+      padding: 0.1em 0.3em;
+      border-radius: 0.2em;
+      border: 1px solid #e5e7eb;
+    }
+    pre {
+      background-color: #f3f4f6;
+      padding: 0.8em;
+      border-radius: 0.4em;
+      border: 1px solid #e5e7eb;
+      overflow-x: auto;
+      margin: 0.5em 0;
+    }
+    pre code {
+      background-color: transparent;
+      padding: 0;
+      border: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 font-sans">
+
+  <!-- Header -->
+  <header class="bg-white shadow">
+    <div class="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 14l-3 3 3 3 3-3-3-3z" />
+        </svg>
+        <h1 class="text-3xl font-semibold text-gray-800 tracking-tight">AI Tutor</h1>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="username-header" class="font-medium"></span>
+        <a href="/logout" class="ml-2 text-indigo-600 hover:text-indigo-800">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Score Display -->
+  <div id="score-display" class="score-display hidden">
+    <span id="username-display"></span>'s Score: <span id="score-value">0</span>
+  </div>
+
+  <!-- Main Chat Area -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-lg h-[600px] flex flex-col overflow-hidden">
+      <!-- Messages -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-5 space-y-4 scroll-smooth">
+        <!-- Dynamic chat messages -->
+      </div>
+
+      <!-- Chat Input -->
+      <form id="chat-form" class="p-4 border-t bg-gray-50">
+        <div class="flex gap-3">
+          <input type="text" id="input-message" placeholder="Type your message..."
+                 class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" />
+          <button type="submit" id="send-button"
+                  class="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-all">
+            Send
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Session Reset Button -->
+  <div id="session-reset-button" class="hidden">
+    <button onclick="resetSession()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow">
+      Reset Session
+    </button>
+  </div>
+
+  <!-- Script Section -->
+  <script>
+    // Global variables
+    const messages = [];
+    let loading = false;
+    let currentScore = 0;
+    let sessionId = '';
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+
+    // Initialize when DOM loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded - initializing app');
+        checkAuthAndInitialize();
+    });
+
+    // Check auth and initialize chat
+    async function checkAuthAndInitialize() {
+        console.log('Checking authentication...');
+        try {
+            const authResponse = await fetch('/api/check-auth', {
+                credentials: 'include'
+            });
+            
+            if (!authResponse.ok) {
+                document.getElementById('session-reset-button').classList.remove('hidden');
+                throw new Error(`Auth check failed with status: ${authResponse.status}`);
+            }
+            
+            const authData = await authResponse.json();
+            console.log('Auth response:', authData);
+            
+            if (authData.authenticated) {
+                document.getElementById('user-info').classList.remove('hidden');
+                document.getElementById('username-header').textContent = authData.username;
+                sessionId = authData.username;
+                console.log('User authenticated:', authData.username);
+                await initializeChat();
+            } else {
+                console.log('User not authenticated, redirecting to login');
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            document.getElementById('session-reset-button').classList.remove('hidden');
+            showErrorNotification('Connection error. Try resetting session or refreshing.');
+        }
+    }
+
+    // Initialize chat after auth
+    async function initializeChat() {
+        console.log('Initializing chat...');
+        try {
+            updateScoreDisplay(0);
+            addWelcomeMessage();
+            
+            const courses = await fetchCourses();
+            if (courses.length > 0) {
+                showAvailableCourses(courses);
+            } else {
+                addMessage({
+                    role: 'ai',
+                    content: '⚠️ No courses available at the moment. Please check back later.'
+                });
+            }
+
+            setupChatForm();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            addMessage({
+                role: 'ai',
+                content: '❌ Failed to initialize chat. Please refresh the page.'
+            });
+        }
+    }
+
+    // Fetch available courses
+    async function fetchCourses() {
+        console.log('Fetching courses...');
+        try {
+            const response = await fetch('/api/courses', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Courses fetch failed with status: ${response.status}`);
+            }
+            
+            const courses = await response.json();
+            
+            if (!Array.isArray(courses)) {
+                throw new Error('Invalid courses data format');
+            }
+            
+            console.log('Courses fetched:', courses);
+            return courses;
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+            throw error;
+        }
+    }
+
+    // Show available courses to user
+    function showAvailableCourses(courses) {
+        const coursesText = courses.map(course => `• ${course}`).join('\n');
+        addMessage({
+            role: 'ai',
+            content: `📚 Available Courses:\n${coursesText}\n\nType the course name you'd like to study or ask a question.`
+        });
+    }
+
+    // Set up chat form event listeners
+    function setupChatForm() {
+        const chatForm = document.getElementById('chat-form');
+        const inputField = document.getElementById('input-message');
+        
+        chatForm.addEventListener('submit', handleChatSubmit);
+        
+        // Allow Shift+Enter for new lines, Enter to submit
+        inputField.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        console.log('Chat form setup complete');
+    }
+
+    // Handle chat submission
+    async function handleChatSubmit(e) {
+        e.preventDefault();
+        const inputField = document.getElementById('input-message');
+        const messageText = inputField.value.trim();
+        
+        if (!messageText || loading) return;
+        
+        addMessage({ role: 'user', content: messageText });
+        inputField.value = '';
+        setLoading(true);
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ 
+                    message: messageText, 
+                    session_id: sessionId,
+                    retry_count: retryCount
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Request failed with status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Chat response:', data);
+            
+            if (data.error) {
+                handleApiError(data.error);
+                return;
+            }
+            
+            // Reset retry count on successful response
+            retryCount = 0;
+            
+            addMessage({ role: 'ai', content: data.response });
+            updateScoreFromResponse(data.response);
+            
+        } catch (error) {
+            console.error('Chat error:', error);
+            // Handle session state errors in catch block too
+            if (error.message.includes('SessionState') || error.message.includes('not iterable')) {
+                showErrorNotification('Session problem detected. Please refresh the page.');
+            } else {
+                handleChatError(error, messageText);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Handle API errors
+    function handleApiError(error) {
+        if (error === 'Unauthorized' || error === 'Invalid session') {
+            showErrorNotification('Session expired. Redirecting to login...');
+            setTimeout(() => window.location.href = '/login', 1500);
+        } 
+        else if (error.includes('SessionState') || error.includes('not iterable')) {
+            resetSession();
+        }
+        else {
+            addMessage({
+                role: 'ai',
+                content: `⚠️ ${error || 'An error occurred. Please try again.'}`
+            });
+        }
+    }
+
+    // Handle chat errors with retry logic
+    function handleChatError(error, messageText) {
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`Retrying (attempt ${retryCount})...`);
+            addMessage({
+                role: 'ai',
+                content: `🔄 Having connection issues. Retrying... (${retryCount}/${MAX_RETRIES})`
+            });
+            setTimeout(() => {
+                addMessage({
+                    role: 'user',
+                    content: messageText
+                });
+                handleChatSubmit(new Event('submit'));
+            }, 1000 * retryCount);
+        } else {
+            retryCount = 0;
+            addMessage({
+                role: 'ai',
+                content: '❌ Sorry, we\'re having trouble connecting. Please try again later.'
+            });
+            document.getElementById('session-reset-button').classList.remove('hidden');
+        }
+    }
+
+    // Reset the session
+    function resetSession() {
+        console.log('Resetting session...');
+        showErrorNotification('Resetting your session...');
+        
+        return fetch('/api/reset-session', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ session_id: sessionId })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to reset session');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showErrorNotification('Session reset successfully. Refreshing...');
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Session reset error:', error);
+            showErrorNotification('Failed to reset session. Please refresh the page.');
+        });
+    }
+
+    // Add welcome message
+    function addWelcomeMessage() {
+        addMessage({
+            role: 'ai',
+            content: '👋 Welcome to AI Tutor! I\'m here to help with your learning journey.\n\n' +
+                    'You can:\n' +
+                    '• Ask questions about any topic\n' +
+                    '• Request explanations\n' +
+                    '• Take quizzes\n' +
+                    '• Or just explore!\n\n' +
+                    'How can I help you today?'
+        });
+    }
+
+    // Update score from AI response
+    function updateScoreFromResponse(response) {
+        const scoreMatch = response.match(/Your (current|final) score: (\d+)/i);
+        if (scoreMatch) {
+            updateScoreDisplay(parseInt(scoreMatch[2]));
+        }
+    }
+
+    // Show error notification
+    function showErrorNotification(message) {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(el => el.remove());
+        
+        const notification = document.createElement('div');
+        notification.className = 'notification bg-red-500 text-white px-4 py-2 rounded-md shadow-lg';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('animate-fadeOut');
+            setTimeout(() => notification.remove(), 500);
+        }, 3000);
+    }
+
+    // Create message element
+    function createMessageElement(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('flex', message.role === 'user' ? 'justify-end' : 'justify-start', 'animate-fadeIn', 'mb-3');
+
+        const innerDiv = document.createElement('div');
+        innerDiv.classList.add('max-w-[75%]', 'px-4', 'py-2.5', 'rounded-xl', 'text-sm', 'whitespace-pre-wrap');
+
+        if (message.role === 'user') {
+            innerDiv.classList.add('bg-indigo-600', 'text-white');
+        } else {
+            innerDiv.classList.add('bg-gray-200', 'text-gray-800');
+        }
+
+        // Format message content with proper HTML tags
+        let htmlContent = message.content
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // bold
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')              // italic
+            .replace(/`(.+?)`/g, '<code>$1</code>')            // inline code
+            .replace(/```([\s\S]+?)```/g, '<pre><code>$1</code></pre>')  // code blocks
+            .replace(/\n/g, '<br>');                          // line breaks
+
+        innerDiv.innerHTML = htmlContent;
+        messageDiv.appendChild(innerDiv);
+        return messageDiv;
+    }
+
+    function scrollToBottom() {
+        const container = document.getElementById('messages-container');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function updateScoreDisplay(score) {
+        const scoreDisplay = document.getElementById('score-display');
+        const scoreValue = document.getElementById('score-value');
+        const usernameDisplay = document.getElementById('username-display');
+
+        if (score !== undefined) {
+            currentScore = score;
+            scoreValue.textContent = score;
+        } else {
+            scoreValue.textContent = currentScore;
+        }
+
+        usernameDisplay.textContent = document.getElementById('username-header').textContent || "Your";
+        scoreDisplay.classList.remove('hidden');
+    }
+
+    function addMessage(message) {
+        messages.push(message);
+        const container = document.getElementById('messages-container');
+        const messageElement = createMessageElement(message);
+        container.appendChild(messageElement);
+        scrollToBottom();
+    }
+
+    function setLoading(isLoading) {
+        loading = isLoading;
+        const sendButton = document.getElementById('send-button');
+        sendButton.disabled = isLoading;
+        document.getElementById('input-message').disabled = isLoading;
+
+        const container = document.getElementById('messages-container');
+        if (isLoading) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.classList.add('flex', 'justify-start', 'mb-3');
+            const innerDiv = document.createElement('div');
+            innerDiv.classList.add('bg-gray-200', 'rounded-xl', 'px-4', 'py-2.5', 'text-sm');
+            
+            // Add animated dots
+            innerDiv.innerHTML = '<span class="flex items-center">Thinking<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></span>';
+            loadingDiv.appendChild(innerDiv);
+            container.appendChild(loadingDiv);
+            scrollToBottom();
+        } else {
+            const loadingDiv = document.getElementById('loading-indicator');
+            if (loadingDiv) loadingDiv.remove();
+        }
+    }
+  </script>
+</body>
+</html>

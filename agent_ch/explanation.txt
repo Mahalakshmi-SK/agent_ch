@@ -1,0 +1,55 @@
+ 
+
+Overall Explanation:
+
+The system is a Flask-based web application that orchestrates an AI-powered learning chatbot. When a user sends a message via the frontend, the Flask server (app.py) routes it to the Chatbot class, which manages conversation flow using a state machine pattern (tracking whether the user is selecting courses, learning topics, or taking quizzes). The chatbot leverages four specialized managers:
+
+CourseManager loads course data from data.json
+
+ExplanationManager uses the Groq API (with Llama 3) to generate topic explanations
+
+QuizManager dynamically creates and evaluates multiple-choice quizzes
+
+ScoreManager persists progress in score.json
+
+Each user's session state (selected course, current topic, quiz progress, and score) is maintained in memory. The system parses AI responses into structured formats, handles errors gracefully, and enables personalized learning through state-aware interactions. The OOP design separates concerns cleanly, making it extensible for new features.
+
+sequenceDiagram
+    User->>Flask: HTTP Request (e.g., POST /api/chat)
+    Flask->>Chatbot: handle_message()
+    Chatbot->>Managers: Delegate tasks
+    Managers->>Chatbot: Return results
+    Chatbot->>Flask: Response
+    Flask->>User: JSON Response
+
+in this project 4 models are used for 
+	1> generate the topic explanation
+	2> generate quiz questions
+	3> generate quiz answer explanation
+	4> generate the simpler explanation when user didn't understood the topic
+
+__pycache__ - it is directory created automatically ,it complies the python source code into byte code and stores it in the cache memory , when user tries to recompile the same code it uses the byte code from the cache in .pyc file.
+
+__init__.py - 
+1> initializes the package for the entire folder. and the entire folder can be imported like module.
+2> public interface definition - when someone uses your package , you can choose what parts they can see and use.
+3> Explicit Exports Control with __all__:
+You tell Python exactly what to include when someone does from chatbot import *.
+
+Example:
+python
+Copy code
+__all__ = ["Chatbot", "CourseManager", "QuizManager", "ExplanationManager", "ScoreManager"]
+
+What is handle_message?
+This is the main method that your chatbot uses to process user input and decide what to do next based on the user's current conversation state.
+
+What Is Session-based State Handling?
+In a web application like your AI learning chatbot, multiple users may interact with the system at the same time. To ensure each user's progress, answers, and flow are managed independently, you use session-based state handling.
+
+
+
+
+
+
+
